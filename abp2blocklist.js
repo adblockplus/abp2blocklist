@@ -1,9 +1,7 @@
-var readline = require('readline');
+var readline = require("readline");
 var filterClasses = require("./adblockplus.js");
 
 var typeMap = filterClasses.RegExpFilter.typeMap;
-
-var rl = readline.createInterface({input: process.stdin, terminal: false});
 
 var requestFilters = [];
 var requestExceptions = [];
@@ -14,16 +12,16 @@ var elemhideSelectorExceptions = Object.create(null);
 
 function recordException(filter) {
 	if (filter.contentType & (typeMap.IMAGE
-							| typeMap.STYLESHEET
-							| typeMap.SCRIPT
-							| typeMap.FONT
-							| typeMap.MEDIA
-							| typeMap.POPUP
-							| typeMap.OBJECT
-							| typeMap.OBJECT_SUBREQUEST
-							| typeMap.XMLHTTPREQUEST
-							| typeMap.SUBDOCUMENT
-							| typeMap.OTHER))
+	                        | typeMap.STYLESHEET
+	                        | typeMap.SCRIPT
+	                        | typeMap.FONT
+	                        | typeMap.MEDIA
+	                        | typeMap.POPUP
+	                        | typeMap.OBJECT
+	                        | typeMap.OBJECT_SUBREQUEST
+	                        | typeMap.XMLHTTPREQUEST
+	                        | typeMap.SUBDOCUMENT
+	                        | typeMap.OTHER))
 		requestExceptions.push(filter);
 
 	if (filter.contentType & typeMap.DOCUMENT)
@@ -59,7 +57,7 @@ function recordSelectorException(filter) {
 	console.assert(excluded.length == 0, filter.text);
 }
 
-rl.on("line", function(line) {
+function parseFilter(line) {
 	var filter = filterClasses.Filter.fromText(line);
 
 	if (filter.sitekey)
@@ -73,7 +71,7 @@ rl.on("line", function(line) {
 		elemhideFilters.push(filter);
 	if (filter instanceof filterClasses.ElemHideException)
 		recordSelectorException(filter);
-});
+}
 
 function joinRegExp(arr) {
 	if (arr.length == 1)
@@ -116,19 +114,35 @@ function convertElemHideFilter(filter)
 
 function getRegExpSource(filter) {
 	var source = filter.regexp.source.replace(/\\\//g, "/");
+
+	// Limit rules to to HTTP(S) URLs
 	if (!/^(\^|http)/i.test(source))
 		source = "^(?=https?:\/\/).*" + source;
 	else
 		source = source.replace("[\\w\\-]+:/+(?!/)(?:[^/]+\\.)?", "https?://");
-	
+
+	// $ (as wel as ^) are not allowed in the middle of the regex
 	return source.replace(
-		/\(\?:\[(\\x00-\\x24\\x26-\\x2C\\x2F\\x3A-\\x40\\x5B-\\x5E\\x60\\x7B-\\x7F)\]\|\$\)/g, 
+		/\(\?:\[(\\x00-\\x24\\x26-\\x2C\\x2F\\x3A-\\x40\\x5B-\\x5E\\x60\\x7B-\\x7F)\]\|\$\)/g,
 		function(match, range, offset, s) {
 		    if (offset + match.length == s.length)
 				return "(?![^" + range + "])";
 			return "[" + range + "]";
 		}
 	);
+}
+
+function addDomainAndThirdPartyOptions(trigger, filter) {
+	if (filter.thirdParty != null)
+		trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
+
+	var included = [];
+	var excluded = [];
+	parseDomains(filter.domains, included, excluded);
+	if (included.length > 0)
+		trigger["if-domain"] = included;
+	if (excluded.length > 0)
+		trigger["unless-domain"] = excluded;
 }
 
 function convertRecursiveException(filter) {
@@ -141,22 +155,11 @@ function convertRecursiveException(filter) {
 			type: "ignore-previous-rules-in-document"
 		}
 	};
-	addDomainOptions(rule, filter);
+
+	addDomainAndThirdPartyOptions(rule.trigger, filter);
 	return rule;
 }
 
-function addDomainOptions(rule, filter) {
-	if (filter.thirdParty != null)
-		rule.trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
-	
-	var included = [];
-	var excluded = [];
-	parseDomains(filter.domains, included, excluded);
-	if (included.length > 0)
-		rule.trigger["if-domain"] = included;
-	if (excluded.length > 0)
-		rule.trigger["unless-domain"] = excluded;
-}
 
 function getResourceTypes(filter) {
 	var types = [];
@@ -177,38 +180,53 @@ function getResourceTypes(filter) {
 		types.push("raw");
 
 	// Not yet supported
+	if (filter.contentType & typeMap.SUBDOCUMENT)
+		types.push("subdocument");
 	if (filter.contentType & typeMap.OBJECT)
 		types.push("object");
 	if (filter.contentType & typeMap.OBJECT_SUBREQUEST)
 		types.push("object-subrequest");
 	if (filter.contentType & typeMap.XMLHTTPREQUEST)
 		types.push("xmlhttprequest");
-	if (filter.contentType & typeMap.SUBDOCUMENT)
-		types.push("subdocument");
-	
+
 	return types;
 }
 
-function convertRequestFilter(filter, opts) {
-	var actionType = "block";
-	if (filter instanceof filterClasses.WhitelistFilter)
-		actionType = "ignore-previous-rules";
-
+function convertRequestFilter(filter) {
 	var rule = {
 		trigger: {
 			"url-filter": getRegExpSource(filter),
 			"resource-type": getResourceTypes(filter)
 		},
 		action: {
-			type: actionType
+			type: "block"
 		}
 	};
 
-	addDomainOptions(rule, filter);
+	// Not yet supported
+	if (filter.collapse != false)
+		rule.action.collapse = true;
+
+	addDomainAndThirdPartyOptions(rule.trigger, filter);
 	return rule;
 }
 
-rl.on("close", function() {
+function convertRequestException(filter, opts) {
+	var rule = {
+		trigger: {
+			"url-filter": getRegExpSource(filter),
+			"resource-type": getResourceTypes(filter)
+		},
+		action: {
+			type: "ignore-previous-rules"
+		}
+	};
+
+	addDomainAndThirdPartyOptions(rule.trigger, filter);
+	return rule;
+}
+
+function logRules() {
 	var rules = [];
 	var i;
 
@@ -219,9 +237,13 @@ rl.on("close", function() {
 	for (i = 0; i < requestFilters.length; i++)
 		rules.push(convertRequestFilter(requestFilters[i]));
 	for (i = 0; i < requestExceptions.length; i++)
-		rules.push(convertRequestFilter(requestExceptions[i]));
+		rules.push(convertRequestException(requestExceptions[i]));
 	for (i = 0; i < documentExceptions.length; i++)
 		rules.push(convertRecursiveException(documentExceptions[i]));
 
 	console.log(JSON.stringify(rules, null, "\t"));
-});
+}
+
+var rl = readline.createInterface({input: process.stdin, terminal: false});
+rl.on("line", parseFilter);
+rl.on("close", logRules);
