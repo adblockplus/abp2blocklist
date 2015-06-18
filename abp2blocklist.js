@@ -176,7 +176,7 @@ function getResourceTypes(filter) {
 		types.push("media");
 	if (filter.contentType & typeMap.POPUP)
 		types.push("popup");
-	if (filter.contentType & typeMap.OTHER)
+	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OTHER))
 		types.push("raw");
 
 	// Not yet supported
@@ -186,8 +186,6 @@ function getResourceTypes(filter) {
 		types.push("object");
 	if (filter.contentType & typeMap.OBJECT_SUBREQUEST)
 		types.push("object-subrequest");
-	if (filter.contentType & typeMap.XMLHTTPREQUEST)
-		types.push("xmlhttprequest");
 
 	return types;
 }
