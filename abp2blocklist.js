@@ -1,4 +1,5 @@
 var readline = require("readline");
+var punycode = require("punycode");
 var filterClasses = require("./adblockplus.js");
 
 var typeMap = filterClasses.RegExpFilter.typeMap;
@@ -35,7 +36,7 @@ function parseDomains(domains, included, excluded) {
 	for (var domain in domains) {
 		if (domain != "") {
 			var enabled = domains[domain];
-			domain = domain.toLowerCase();
+			domain = punycode.toASCII(domain.toLowerCase());
 
 			if (!enabled)
 				excluded.push(domain);
@@ -87,8 +88,7 @@ function matchDomains(domains) {
 	return "([^/]*\\.)?" + joinRegExp(domains.map(escapeRegExp)) + "/";
 }
 
-function convertElemHideFilter(filter)
-{
+function convertElemHideFilter(filter) {
 	var included = [];
 	var excluded = [];
 	parseDomains(filter.domains, included, excluded);
@@ -112,24 +112,73 @@ function convertElemHideFilter(filter)
 	};
 }
 
+function toRegExp(text) {
+	var result = "";
+	var lastIndex = text.length - 1;
+
+	for (var i = 0; i < text.length; i++)
+	{
+		var c = text[i];
+
+		switch (c)
+		{
+			case "*":
+				if (result.length > 0 && i < lastIndex && text[i + 1] != "*")
+					result += ".*";
+				break;
+			case "^":
+				var chars = "\\x00-\\x24\\x26-\\x2C\\x2F\\x3A-\\x40\\x5B-\\x5E\\x60\\x7B-\\x7F";
+				if (i == lastIndex)
+					result += "(?![^" + chars + "])";
+				else
+					result += "[" + chars + "]";
+				break;
+			case "|":
+				if (i == 0)
+				{
+					result += "^";
+					break;
+				}
+				if (i == lastIndex)
+				{
+					result += "$";
+					break;
+				}
+				if (i == 1 && text[0] == "|")
+				{
+					result += "https?://";
+					break;
+				}
+			case ".": case "+": case "?": case "$":
+			case "{": case "}": case "(": case ")":
+			case "[": case "]": case "\\":
+				result += "\\";
+			default:
+				result += c;
+		}
+	}
+
+	return result;
+}
+
 function getRegExpSource(filter) {
-	var source = filter.regexp.source.replace(/\\\//g, "/");
+	var source;
+	if (filter.regexpSource)
+		source = toRegExp(filter.regexpSource.replace(
+			// Safari expects punycode, filter lists use unicode
+			/^(\|\||\|?https?:\/\/)([\w\-.*\u0080-\uFFFF]+)/i,
+			function (match, prefix, domain) {
+				return prefix + punycode.toASCII(domain);
+			}
+		));
+	else
+		source = filter.regexp.source;
 
 	// Limit rules to to HTTP(S) URLs
 	if (!/^(\^|http)/i.test(source))
-		source = "^(?=https?:\/\/).*" + source;
-	else
-		source = source.replace("[\\w\\-]+:/+(?!/)(?:[^/]+\\.)?", "https?://");
+		source = "^(?=https?://).*" + source;
 
-	// $ (as wel as ^) are not allowed in the middle of the regex
-	return source.replace(
-		/\(\?:\[(\\x00-\\x24\\x26-\\x2C\\x2F\\x3A-\\x40\\x5B-\\x5E\\x60\\x7B-\\x7F)\]\|\$\)/g,
-		function(match, range, offset, s) {
-		    if (offset + match.length == s.length)
-				return "(?![^" + range + "])";
-			return "[" + range + "]";
-		}
-	);
+	return source;
 }
 
 function addDomainAndThirdPartyOptions(trigger, filter) {
