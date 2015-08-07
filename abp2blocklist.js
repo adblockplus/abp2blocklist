@@ -6,7 +6,6 @@ var typeMap = filterClasses.RegExpFilter.typeMap;
 
 var requestFilters = [];
 var requestExceptions = [];
-var documentExceptions = [];
 var elemhideFilters = [];
 var elemhideExceptions = [];
 var elemhideSelectorExceptions = Object.create(null);
@@ -24,9 +23,6 @@ function recordException(filter) {
 	                        | typeMap.SUBDOCUMENT
 	                        | typeMap.OTHER))
 		requestExceptions.push(filter);
-
-	if (filter.contentType & typeMap.DOCUMENT)
-		documentExceptions.push(filter);
 
 	if (filter.contentType & typeMap.ELEMHIDE)
 		elemhideExceptions.push(filter);
@@ -181,35 +177,6 @@ function getRegExpSource(filter) {
 	return source;
 }
 
-function addDomainAndThirdPartyOptions(trigger, filter) {
-	if (filter.thirdParty != null)
-		trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
-
-	var included = [];
-	var excluded = [];
-	parseDomains(filter.domains, included, excluded);
-	if (included.length > 0)
-		trigger["if-domain"] = included;
-	if (excluded.length > 0)
-		trigger["unless-domain"] = excluded;
-}
-
-function convertRecursiveException(filter) {
-	var rule = {
-		trigger: {
-			"url-filter": getRegExpSource(filter)
-		},
-		action: {
-			// Not yet supported
-			type: "ignore-previous-rules-in-document"
-		}
-	};
-
-	addDomainAndThirdPartyOptions(rule.trigger, filter);
-	return rule;
-}
-
-
 function getResourceTypes(filter) {
 	var types = [];
 
@@ -221,56 +188,36 @@ function getResourceTypes(filter) {
 		types.push("script");
 	if (filter.contentType & typeMap.FONT)
 		types.push("font");
-	if (filter.contentType & typeMap.MEDIA)
+	if (filter.contentType & (typeMap.MEDIA | typeMap.OBJECT))
 		types.push("media");
 	if (filter.contentType & typeMap.POPUP)
 		types.push("popup");
-	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OTHER))
+	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OBJECT_SUBREQUEST | typeMap.OTHER))
 		types.push("raw");
-
-	// Not yet supported
 	if (filter.contentType & typeMap.SUBDOCUMENT)
-		types.push("subdocument");
-	if (filter.contentType & typeMap.OBJECT)
-		types.push("object");
-	if (filter.contentType & typeMap.OBJECT_SUBREQUEST)
-		types.push("object-subrequest");
+		types.push("document");
 
 	return types;
 }
 
-function convertRequestFilter(filter) {
-	var rule = {
-		trigger: {
-			"url-filter": getRegExpSource(filter),
-			"resource-type": getResourceTypes(filter)
-		},
-		action: {
-			type: "block"
-		}
-	};
+function convertFilter(filter, action, withResourceTypes) {
+	var trigger = {"url-filter": getRegExpSource(filter)};
+	var included = [];
+	var excluded = [];
 
-	// Not yet supported
-	if (filter.collapse != false)
-		rule.action.collapse = true;
+	parseDomains(filter.domains, included, excluded);
 
-	addDomainAndThirdPartyOptions(rule.trigger, filter);
-	return rule;
-}
+	if (withResourceTypes)
+		trigger["resource-type"] = getResourceTypes(filter);
+	if (filter.thirdParty != null)
+		trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
 
-function convertRequestException(filter, opts) {
-	var rule = {
-		trigger: {
-			"url-filter": getRegExpSource(filter),
-			"resource-type": getResourceTypes(filter)
-		},
-		action: {
-			type: "ignore-previous-rules"
-		}
-	};
+	if (included.length > 0)
+		trigger["if-domain"] = included;
+	else if (excluded.length > 0)
+		trigger["unless-domain"] = excluded;
 
-	addDomainAndThirdPartyOptions(rule.trigger, filter);
-	return rule;
+	return {trigger: trigger, action: {type: action}};
 }
 
 function logRules() {
@@ -280,13 +227,11 @@ function logRules() {
 	for (i = 0; i < elemhideFilters.length; i++)
 		rules.push(convertElemHideFilter(elemhideFilters[i]));
 	for (i = 0; i < elemhideExceptions.length; i++)
-		rules.push(convertRecursiveException(elemhideExceptions[i]));
+		rules.push(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
 	for (i = 0; i < requestFilters.length; i++)
-		rules.push(convertRequestFilter(requestFilters[i]));
+		rules.push(convertFilter(requestFilters[i], "block", true));
 	for (i = 0; i < requestExceptions.length; i++)
-		rules.push(convertRequestException(requestExceptions[i]));
-	for (i = 0; i < documentExceptions.length; i++)
-		rules.push(convertRecursiveException(documentExceptions[i]));
+		rules.push(convertFilter(requestExceptions[i], "ignore-previous-rules", true));
 
 	console.log(JSON.stringify(rules, null, "\t"));
 }
