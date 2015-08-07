@@ -1,5 +1,6 @@
 var readline = require("readline");
 var punycode = require("punycode");
+var tldjs = require("tldjs");
 var filterClasses = require("./adblockplus.js");
 
 var typeMap = filterClasses.RegExpFilter.typeMap;
@@ -200,6 +201,20 @@ function getResourceTypes(filter) {
 	return types;
 }
 
+function addDomainPrefix(domains) {
+	var result = [];
+
+	for (var i = 0; i < domains.length; i++) {
+		var domain = domains[i];
+		result.push(domain);
+
+		if (tldjs.getSubdomain(domain) == "")
+			result.push("www." + domain);
+	}
+
+	return result;
+}
+
 function convertFilter(filter, action, withResourceTypes) {
 	var trigger = {"url-filter": getRegExpSource(filter)};
 	var included = [];
@@ -213,9 +228,9 @@ function convertFilter(filter, action, withResourceTypes) {
 		trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
 
 	if (included.length > 0)
-		trigger["if-domain"] = included;
+		trigger["if-domain"] = addDomainPrefix(included);
 	else if (excluded.length > 0)
-		trigger["unless-domain"] = excluded;
+		trigger["unless-domain"] = addDomainPrefix(excluded);
 
 	return {trigger: trigger, action: {type: action}};
 }
