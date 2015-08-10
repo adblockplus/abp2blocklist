@@ -88,7 +88,7 @@ function convertElemHideFilter(filter) {
 
 	parseDomains(filter.domains, included, excluded);
 
-	if (excluded.length == 0 && !(filter.selector in elemhideSelectorExceptions)) {
+	if (excluded.length == 0 && !(filter.selector in elemhideSelectorExceptions) && included.length <= 1) {
 		var action = {
 			type: "css-display-none",
 			selector: filter.selector
