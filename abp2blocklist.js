@@ -225,7 +225,7 @@ function convertFilter(filter, action, withResourceTypes) {
 	if (withResourceTypes)
 		trigger["resource-type"] = getResourceTypes(filter);
 	if (filter.thirdParty != null)
-		trigger["load-type"] = filter.thirdParty ? "third-party" : "first-party";
+		trigger["load-type"] = [filter.thirdParty ? "third-party" : "first-party"];
 
 	if (included.length > 0)
 		trigger["if-domain"] = addDomainPrefix(included);
