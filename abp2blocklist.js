@@ -125,7 +125,6 @@ function toRegExp(text) {
 					result += ".*";
 				break;
 			case "^":
-				result += "\\b";
 				if (i < lastIndex)
 					result += ".";
 				break;
