@@ -230,18 +230,45 @@ function convertFilter(filter, action, withResourceTypes) {
 	return {trigger: trigger, action: {type: action}};
 }
 
+function hasNonASCI(obj) {
+	if (typeof obj == "string") {
+		if (/[^\x00-\x7F]/.test(obj))
+			return true;
+	}
+
+	if (typeof obj == "object") {
+		var i;
+		if (obj instanceof Array)
+			for (i = 0; i < obj.length; i++)
+				if (hasNonASCI(obj[i]))
+					return true;
+
+		var names = Object.getOwnPropertyNames(obj);
+		for (i = 0; i < names.length; i++)
+			if (hasNonASCI(obj[names[i]]))
+				return true;
+	}
+
+	return false;
+}
+
 function logRules() {
 	var rules = [];
 	var i;
 
+	function addRule(rule) {
+		if (!hasNonASCI(rule))
+			rules.push(rule);
+	}
+
 	for (i = 0; i < elemhideFilters.length; i++)
-		rules.push.apply(rules, convertElemHideFilter(elemhideFilters[i]));
+		convertElemHideFilter(elemhideFilters[i]).forEach(addRule);
 	for (i = 0; i < elemhideExceptions.length; i++)
-		rules.push(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
+		addRule(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
 	for (i = 0; i < requestFilters.length; i++)
-		rules.push(convertFilter(requestFilters[i], "block", true));
+		addRule(convertFilter(requestFilters[i], "block", true));
 	for (i = 0; i < requestExceptions.length; i++)
-		rules.push(convertFilter(requestExceptions[i], "ignore-previous-rules", true));
+		addRule(convertFilter(requestExceptions[i], "ignore-previous-rules", true));
 
 	console.log(JSON.stringify(rules, null, "\t"));
 }
