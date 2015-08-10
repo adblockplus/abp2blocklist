@@ -60,6 +60,8 @@ function parseFilter(line) {
 
 	if (filter.sitekey)
 		return;
+	if (filter instanceof filterClasses.RegExpFilter && !filter.regexpSource)
+		return;
 
 	if (filter instanceof filterClasses.BlockingFilter)
 		requestFilters.push(filter);
@@ -71,42 +73,41 @@ function parseFilter(line) {
 		recordSelectorException(filter);
 }
 
-function joinRegExp(arr) {
-	if (arr.length == 1)
-		return arr[0];
-	return "(?:" + arr.join("|") + ")";
-}
-
 function escapeRegExp(s) {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function matchDomains(domains) {
-	return "([^/]*\\.)?" + joinRegExp(domains.map(escapeRegExp)) + "/";
+function matchDomain(domain) {
+	return "^https?://([^/]*\\.)?" + escapeRegExp(domain) + "/";
 }
 
 function convertElemHideFilter(filter) {
 	var included = [];
 	var excluded = [];
+	var rules = [];
+
 	parseDomains(filter.domains, included, excluded);
-	if (filter.selector in elemhideSelectorExceptions)
-		excluded = excluded.concat(elemhideSelectorExceptions[filter.selector]);
 
-	var regexp = "^https?://";
-	if (excluded.length > 0)
-		regexp += "(?!" + matchDomains(excluded) + ")";
-	if (included.length > 0)
-		regexp += matchDomains(included);
-
-	return {
-		trigger: {
-			"url-filter": regexp
-		},
-		action: {
+	if (excluded.length == 0 && !(filter.selector in elemhideSelectorExceptions)) {
+		var action = {
 			type: "css-display-none",
 			selector: filter.selector
-		}
-	};
+		};
+
+		for (var i = 0; i < included.length; i++)
+			rules.push({
+				trigger: {"url-filter": matchDomain(included[i])},
+				action: action
+			});
+
+		if (included.length == 0)
+			rules.push({
+				trigger: {"url-filter": "^https?://"},
+				action: action
+			});
+	}
+
+	return rules;
 }
 
 function toRegExp(text) {
@@ -124,11 +125,9 @@ function toRegExp(text) {
 					result += ".*";
 				break;
 			case "^":
-				var chars = "\\x00-\\x24\\x26-\\x2C\\x2F\\x3A-\\x40\\x5B-\\x5E\\x60\\x7B-\\x7F";
-				if (i == lastIndex)
-					result += "(?![^" + chars + "])";
-				else
-					result += "[" + chars + "]";
+				result += "\\b";
+				if (i < lastIndex)
+					result += ".";
 				break;
 			case "|":
 				if (i == 0)
@@ -159,21 +158,17 @@ function toRegExp(text) {
 }
 
 function getRegExpSource(filter) {
-	var source;
-	if (filter.regexpSource)
-		source = toRegExp(filter.regexpSource.replace(
-			// Safari expects punycode, filter lists use unicode
-			/^(\|\||\|?https?:\/\/)([\w\-.*\u0080-\uFFFF]+)/i,
-			function (match, prefix, domain) {
-				return prefix + punycode.toASCII(domain);
-			}
-		));
-	else
-		source = filter.regexp.source;
+	var source = toRegExp(filter.regexpSource.replace(
+		// Safari expects punycode, filter lists use unicode
+		/^(\|\||\|?https?:\/\/)([\w\-.*\u0080-\uFFFF]+)/i,
+		function (match, prefix, domain) {
+			return prefix + punycode.toASCII(domain);
+		}
+	));
 
 	// Limit rules to to HTTP(S) URLs
 	if (!/^(\^|http)/i.test(source))
-		source = "^(?=https?://).*" + source;
+		source = "^https?://.*" + source;
 
 	return source;
 }
@@ -240,7 +235,7 @@ function logRules() {
 	var i;
 
 	for (i = 0; i < elemhideFilters.length; i++)
-		rules.push(convertElemHideFilter(elemhideFilters[i]));
+		rules.push.apply(rules, convertElemHideFilter(elemhideFilters[i]));
 	for (i = 0; i < elemhideExceptions.length; i++)
 		rules.push(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
 	for (i = 0; i < requestFilters.length; i++)
