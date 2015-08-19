@@ -78,7 +78,7 @@ function escapeRegExp(s) {
 }
 
 function matchDomain(domain) {
-	return "^https?://([^/]*\\.)?" + escapeRegExp(domain) + "/";
+	return "^https?://([^/:]*\\.)?" + escapeRegExp(domain) + "[/:]";
 }
 
 function convertElemHideFilter(filter) {
