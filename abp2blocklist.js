@@ -48,11 +48,7 @@ function recordSelectorException(filter) {
 	if (!domains)
 		domains = elemhideSelectorExceptions[filter.selector] = [];
 
-	var excluded = [];
-	parseDomains(filter.domains, domains, excluded);
-
-	console.assert(!filter.domains[""], filter.text);
-	console.assert(excluded.length == 0, filter.text);
+	parseDomains(filter.domains, domains, []);
 }
 
 function parseFilter(line) {
