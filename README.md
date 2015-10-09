@@ -10,6 +10,14 @@ Plus for other browsers are expected.
 This script is used to convert the filter lists for
 [Adblock Plus for iOS](https://adblockplus.org/releases/adblock-plus-10-for-ios-released).
 
+## Requirements
+
+The required packages can be installed via [NPM](https://npmjs.org):
+
+```
+npm install
+```
+
 ## Usage
 
 ```
