@@ -54,7 +54,7 @@ function recordSelectorException(filter) {
 function parseFilter(line) {
 	var filter = filterClasses.Filter.fromText(line);
 
-	if (filter.sitekey)
+	if (filter.sitekeys)
 		return;
 	if (filter instanceof filterClasses.RegExpFilter && !filter.regexpSource)
 		return;
