@@ -184,7 +184,7 @@ function getResourceTypes(filter) {
 		types.push("media");
 	if (filter.contentType & typeMap.POPUP)
 		types.push("popup");
-	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OBJECT_SUBREQUEST | typeMap.PING))
+	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OBJECT_SUBREQUEST | typeMap.PING | typeMap.OTHER))
 		types.push("raw");
 	if (filter.contentType & typeMap.SUBDOCUMENT)
 		types.push("document");
