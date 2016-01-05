@@ -21,6 +21,7 @@ function recordException(filter) {
 	                        | typeMap.OBJECT
 	                        | typeMap.OBJECT_SUBREQUEST
 	                        | typeMap.XMLHTTPREQUEST
+	                        | typeMap.PING
 	                        | typeMap.SUBDOCUMENT
 	                        | typeMap.OTHER))
 		requestExceptions.push(filter);
@@ -183,7 +184,7 @@ function getResourceTypes(filter) {
 		types.push("media");
 	if (filter.contentType & typeMap.POPUP)
 		types.push("popup");
-	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OBJECT_SUBREQUEST | typeMap.OTHER))
+	if (filter.contentType & (typeMap.XMLHTTPREQUEST | typeMap.OBJECT_SUBREQUEST | typeMap.PING))
 		types.push("raw");
 	if (filter.contentType & typeMap.SUBDOCUMENT)
 		types.push("document");

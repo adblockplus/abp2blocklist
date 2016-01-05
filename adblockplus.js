@@ -30,6 +30,10 @@ exports.Filter = Filter;
 Filter.prototype = {
   text: null,
   subscriptions: null,
+  get type()
+  {
+    throw new Error("Please define filter type in the subclass");
+  },
   serialize: function(buffer)
   {
     buffer.push("[Filter]");
@@ -55,7 +59,7 @@ Filter.fromText = function(text)
   var match = text.indexOf("#") >= 0 ? Filter.elemhideRegExp.exec(text) : null;
   if (match)
   {
-    ret = ElemHideBase.fromText(text, match[1], match[2], match[3], match[4], match[5]);
+    ret = ElemHideBase.fromText(text, match[1], !!match[2], match[3], match[4], match[5]);
   }
   else if (text[0] == "!")
   {
@@ -125,6 +129,7 @@ function InvalidFilter(text, reason)
 exports.InvalidFilter = InvalidFilter;
 InvalidFilter.prototype = {
   __proto__: Filter.prototype,
+  type: "invalid",
   reason: null,
   serialize: function(buffer)
   {}
@@ -137,6 +142,7 @@ function CommentFilter(text)
 exports.CommentFilter = CommentFilter;
 CommentFilter.prototype = {
   __proto__: Filter.prototype,
+  type: "comment",
   serialize: function(buffer)
   {}
 };
@@ -320,6 +326,10 @@ ActiveFilter.prototype = {
     }
     return true;
   },
+  isGeneric: function()
+  {
+    return !(this.sitekeys && this.sitekeys.length) && (!this.domains || this.domains[""]);
+  },
   serialize: function(buffer)
   {
     if (this._disabled || this._hitCount || this._lastHit)
@@ -419,9 +429,9 @@ RegExpFilter.prototype = {
     });
     return this.sitekeys;
   },
-  matches: function(location, contentType, docDomain, thirdParty, sitekey)
+  matches: function(location, typeMask, docDomain, thirdParty, sitekey)
   {
-    if ((RegExpFilter.typeMap[contentType] & this.contentType) != 0 && (this.thirdParty == null || this.thirdParty == thirdParty) && this.isActiveOnDomain(docDomain, sitekey) && this.regexp.test(location))
+    if (this.contentType & typeMask && (this.thirdParty == null || this.thirdParty == thirdParty) && this.isActiveOnDomain(docDomain, sitekey) && this.regexp.test(location))
     {
       return true;
     }
@@ -546,7 +556,7 @@ RegExpFilter.typeMap = {
   SUBDOCUMENT: 32,
   DOCUMENT: 64,
   XBL: 1,
-  PING: 1,
+  PING: 1024,
   XMLHTTPREQUEST: 2048,
   OBJECT_SUBREQUEST: 4096,
   DTD: 1,
@@ -554,9 +564,11 @@ RegExpFilter.typeMap = {
   FONT: 32768,
   BACKGROUND: 4,
   POPUP: 268435456,
-  ELEMHIDE: 1073741824
+  GENERICBLOCK: 536870912,
+  ELEMHIDE: 1073741824,
+  GENERICHIDE: 2147483648
 };
-RegExpFilter.prototype.contentType &= ~ (RegExpFilter.typeMap.DOCUMENT | RegExpFilter.typeMap.ELEMHIDE | RegExpFilter.typeMap.POPUP);
+RegExpFilter.prototype.contentType &= ~ (RegExpFilter.typeMap.DOCUMENT | RegExpFilter.typeMap.ELEMHIDE | RegExpFilter.typeMap.POPUP | RegExpFilter.typeMap.GENERICHIDE | RegExpFilter.typeMap.GENERICBLOCK);
 
 function BlockingFilter(text, regexpSource, contentType, matchCase, domains, thirdParty, sitekeys, collapse)
 {
@@ -566,6 +578,7 @@ function BlockingFilter(text, regexpSource, contentType, matchCase, domains, thi
 exports.BlockingFilter = BlockingFilter;
 BlockingFilter.prototype = {
   __proto__: RegExpFilter.prototype,
+  type: "blocking",
   collapse: null
 };
 
@@ -575,7 +588,8 @@ function WhitelistFilter(text, regexpSource, contentType, matchCase, domains, th
 }
 exports.WhitelistFilter = WhitelistFilter;
 WhitelistFilter.prototype = {
-  __proto__: RegExpFilter.prototype
+  __proto__: RegExpFilter.prototype,
+  type: "whitelist"
 };
 
 function ElemHideBase(text, domains, selector)
@@ -663,7 +677,8 @@ function ElemHideFilter(text, domains, selector)
 }
 exports.ElemHideFilter = ElemHideFilter;
 ElemHideFilter.prototype = {
-  __proto__: ElemHideBase.prototype
+  __proto__: ElemHideBase.prototype,
+  type: "elemhide"
 };
 
 function ElemHideException(text, domains, selector)
@@ -672,7 +687,8 @@ function ElemHideException(text, domains, selector)
 }
 exports.ElemHideException = ElemHideException;
 ElemHideException.prototype = {
-  __proto__: ElemHideBase.prototype
+  __proto__: ElemHideBase.prototype,
+  type: "elemhideexception"
 };
 
 function CSSPropertyFilter(text, domains, selector, regexpSource, selectorPrefix, selectorSuffix)
@@ -685,6 +701,7 @@ function CSSPropertyFilter(text, domains, selector, regexpSource, selectorPrefix
 exports.CSSPropertyFilter = CSSPropertyFilter;
 CSSPropertyFilter.prototype = {
   __proto__: ElemHideBase.prototype,
+  type: "cssproperty",
   regexpSource: null,
   selectorPrefix: null,
   selectorSuffix: null,
