@@ -257,10 +257,15 @@ function logRules() {
 			rules.push(rule);
 	}
 
-	for (i = 0; i < elemhideFilters.length; i++)
-		convertElemHideFilter(elemhideFilters[i]).forEach(addRule);
-	for (i = 0; i < elemhideExceptions.length; i++)
-		addRule(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
+	// HACK: We ignore element hiding filter for now to get the list of
+	// rules down below 50K. This limit is enforced by iOS and Safari.
+	// To be undone with https://issues.adblockplus.org/ticket/3585
+
+	//for (i = 0; i < elemhideFilters.length; i++)
+	//	convertElemHideFilter(elemhideFilters[i]).forEach(addRule);
+	//for (i = 0; i < elemhideExceptions.length; i++)
+	//	addRule(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
+
 	for (i = 0; i < requestFilters.length; i++)
 		addRule(convertFilter(requestFilters[i], "block", true));
 	for (i = 0; i < requestExceptions.length; i++)
