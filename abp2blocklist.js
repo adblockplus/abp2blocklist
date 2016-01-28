@@ -53,6 +53,9 @@ function recordSelectorException(filter) {
 }
 
 function parseFilter(line) {
+	if (line.charAt(0) == "[")
+		return;
+
 	var filter = filterClasses.Filter.fromText(line);
 
 	if (filter.sitekeys)
