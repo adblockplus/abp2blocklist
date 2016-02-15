@@ -1,15 +1,17 @@
-var readline = require("readline");
-var punycode = require("punycode");
-var tldjs = require("tldjs");
-var filterClasses = require("./adblockplus.js");
+"use strict";
 
-var typeMap = filterClasses.RegExpFilter.typeMap;
+let readline = require("readline");
+let punycode = require("punycode");
+let tldjs = require("tldjs");
+let filterClasses = require("./adblockplus.js");
 
-var requestFilters = [];
-var requestExceptions = [];
-var elemhideFilters = [];
-var elemhideExceptions = [];
-var elemhideSelectorExceptions = Object.create(null);
+let typeMap = filterClasses.RegExpFilter.typeMap;
+
+let requestFilters = [];
+let requestExceptions = [];
+let elemhideFilters = [];
+let elemhideExceptions = [];
+let elemhideSelectorExceptions = new Map();
 
 function recordException(filter)
 {
@@ -33,11 +35,11 @@ function recordException(filter)
 
 function parseDomains(domains, included, excluded)
 {
-  for (var domain in domains)
+  for (let domain in domains)
   {
     if (domain != "")
     {
-      var enabled = domains[domain];
+      let enabled = domains[domain];
       domain = punycode.toASCII(domain.toLowerCase());
 
       if (!enabled)
@@ -50,7 +52,7 @@ function parseDomains(domains, included, excluded)
 
 function recordSelectorException(filter)
 {
-  var domains = elemhideSelectorExceptions[filter.selector];
+  let domains = elemhideSelectorExceptions[filter.selector];
   if (!domains)
     domains = elemhideSelectorExceptions[filter.selector] = [];
 
@@ -62,7 +64,7 @@ function parseFilter(line)
   if (line.charAt(0) == "[")
     return;
 
-  var filter = filterClasses.Filter.fromText(line);
+  let filter = filterClasses.Filter.fromText(line);
 
   if (filter.sitekeys)
     return;
@@ -91,22 +93,22 @@ function matchDomain(domain)
 
 function convertElemHideFilter(filter)
 {
-  var included = [];
-  var excluded = [];
-  var rules = [];
+  let included = [];
+  let excluded = [];
+  let rules = [];
 
   parseDomains(filter.domains, included, excluded);
 
   if (excluded.length == 0 && !(filter.selector in elemhideSelectorExceptions))
   {
-    var action = {
+    let action = {
       type: "css-display-none",
       selector: filter.selector
     };
 
-    for (var i = 0; i < included.length; i++)
+    for (let domain of included)
       rules.push({
-          trigger: {"url-filter": matchDomain(included[i])},
+          trigger: {"url-filter": matchDomain(domain)},
           action: action
       });
 
@@ -122,12 +124,12 @@ function convertElemHideFilter(filter)
 
 function toRegExp(text)
 {
-  var result = "";
-  var lastIndex = text.length - 1;
+  let result = "";
+  let lastIndex = text.length - 1;
 
-  for (var i = 0; i < text.length; i++)
+  for (let i = 0; i < text.length; i++)
   {
-    var c = text[i];
+    let c = text[i];
 
     switch (c)
     {
@@ -169,7 +171,7 @@ function toRegExp(text)
 
 function getRegExpSource(filter)
 {
-  var source = toRegExp(filter.regexpSource.replace(
+  let source = toRegExp(filter.regexpSource.replace(
     // Safari expects punycode, filter lists use unicode
     /^(\|\||\|?https?:\/\/)([\w\-.*\u0080-\uFFFF]+)/i,
     function (match, prefix, domain)
@@ -187,7 +189,7 @@ function getRegExpSource(filter)
 
 function getResourceTypes(filter)
 {
-  var types = [];
+  let types = [];
 
   if (filter.contentType & typeMap.IMAGE)
     types.push("image");
@@ -212,11 +214,10 @@ function getResourceTypes(filter)
 
 function addDomainPrefix(domains)
 {
-  var result = [];
+  let result = [];
 
-  for (var i = 0; i < domains.length; i++)
+  for (let domain of domains)
   {
-    var domain = domains[i];
     result.push(domain);
 
     if (tldjs.getSubdomain(domain) == "")
@@ -228,9 +229,9 @@ function addDomainPrefix(domains)
 
 function convertFilter(filter, action, withResourceTypes)
 {
-  var trigger = {"url-filter": getRegExpSource(filter)};
-  var included = [];
-  var excluded = [];
+  let trigger = {"url-filter": getRegExpSource(filter)};
+  let included = [];
+  let excluded = [];
 
   parseDomains(filter.domains, included, excluded);
 
@@ -257,15 +258,13 @@ function hasNonASCI(obj)
 
   if (typeof obj == "object")
   {
-    var i;
     if (obj instanceof Array)
-      for (i = 0; i < obj.length; i++)
-        if (hasNonASCI(obj[i]))
+      for (let item of obj)
+        if (hasNonASCI(item))
           return true;
 
-    var names = Object.getOwnPropertyNames(obj);
-    for (i = 0; i < names.length; i++)
-      if (hasNonASCI(obj[names[i]]))
+    for (let name of Object.getOwnPropertyNames(obj))
+      if (hasNonASCI(obj[name]))
         return true;
   }
 
@@ -274,8 +273,7 @@ function hasNonASCI(obj)
 
 function logRules()
 {
-  var rules = [];
-  var i;
+  let rules = [];
 
   function addRule(rule)
   {
@@ -287,19 +285,19 @@ function logRules()
   // rules down below 50K. This limit is enforced by iOS and Safari.
   // To be undone with https://issues.adblockplus.org/ticket/3585
 
-  //for (i = 0; i < elemhideFilters.length; i++)
-  //  convertElemHideFilter(elemhideFilters[i]).forEach(addRule);
-  //for (i = 0; i < elemhideExceptions.length; i++)
-  //  addRule(convertFilter(elemhideExceptions[i], "ignore-previous-rules", false));
+  //for (let filter of elemhideFilters)
+  //  convertElemHideFilter(filter).forEach(addRule);
+  //for (let filter of elemhideExceptions)
+  //  addRule(convertFilter(filter, "ignore-previous-rules", false));
 
-  for (i = 0; i < requestFilters.length; i++)
-    addRule(convertFilter(requestFilters[i], "block", true));
-  for (i = 0; i < requestExceptions.length; i++)
-    addRule(convertFilter(requestExceptions[i], "ignore-previous-rules", true));
+  for (let filter of requestFilters)
+    addRule(convertFilter(filter, "block", true));
+  for (let filter of requestExceptions)
+    addRule(convertFilter(filter, "ignore-previous-rules", true));
 
   console.log(JSON.stringify(rules, null, "\t"));
 }
 
-var rl = readline.createInterface({input: process.stdin, terminal: false});
+let rl = readline.createInterface({input: process.stdin, terminal: false});
 rl.on("line", parseFilter);
 rl.on("close", logRules);
