@@ -7,6 +7,8 @@ let filterClasses = require("./adblockplus.js");
 
 let typeMap = filterClasses.RegExpFilter.typeMap;
 
+const selectorLimit = 5000;
+
 let requestFilters = [];
 let requestExceptions = [];
 let elemhideFilters = [];
@@ -100,26 +102,7 @@ function convertElemHideFilter(filter)
   parseDomains(filter.domains, included, excluded);
 
   if (excluded.length == 0 && !(filter.selector in elemhideSelectorExceptions))
-  {
-    let action = {
-      type: "css-display-none",
-      selector: filter.selector
-    };
-
-    for (let domain of included)
-      rules.push({
-          trigger: {"url-filter": matchDomain(domain)},
-          action: action
-      });
-
-    if (included.length == 0)
-      rules.push({
-          trigger: {"url-filter": "^https?://"},
-          action: action
-      });
-  }
-
-  return rules;
+    return {matchDomains: included.map(matchDomain), selector: filter.selector};
 }
 
 function toRegExp(text)
@@ -281,14 +264,38 @@ function logRules()
       rules.push(rule);
   }
 
-  // HACK: We ignore element hiding filter for now to get the list of
-  // rules down below 50K. This limit is enforced by iOS and Safari.
-  // To be undone with https://issues.adblockplus.org/ticket/3585
+  let groupedElemhideFilters = new Map();
+  for (let filter of elemhideFilters)
+  {
+    let result = convertElemHideFilter(filter);
+    if (!result)
+      continue;
 
-  //for (let filter of elemhideFilters)
-  //  convertElemHideFilter(filter).forEach(addRule);
-  //for (let filter of elemhideExceptions)
-  //  addRule(convertFilter(filter, "ignore-previous-rules", false));
+    if (result.matchDomains.length == 0)
+      result.matchDomains = ["^https?://"];
+
+    for (let matchDomain of result.matchDomains)
+    {
+      let group = groupedElemhideFilters.get(matchDomain) || [];
+      group.push(result.selector);
+      groupedElemhideFilters.set(matchDomain, group);
+    }
+  }
+
+  groupedElemhideFilters.forEach((selectors, matchDomain) =>
+  {
+    while (selectors.length)
+    {
+      addRule({
+        trigger: {"url-filter": matchDomain},
+        action: {type: "css-display-none",
+                 selector: selectors.splice(0, selectorLimit).join(", ")}
+      });
+    }
+  });
+
+  for (let filter of elemhideExceptions)
+    addRule(convertFilter(filter, "ignore-previous-rules", false));
 
   for (let filter of requestFilters)
     addRule(convertFilter(filter, "block", true));
