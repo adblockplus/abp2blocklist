@@ -254,6 +254,57 @@ function hasNonASCI(obj)
   return false;
 }
 
+function convertIDSelectorsToAttributeSelectors(selector)
+{
+  // First we figure out where all the IDs are
+  let sep = "";
+  let start = null;
+  let positions = [];
+  for (let i = 0; i < selector.length; i++)
+  {
+    let chr = selector[i];
+
+    if (chr == "\\")        // ignore escaped characters
+      i++;
+    else if (chr == sep)    // don't match IDs within quoted text
+      sep = "";             // e.g. [attr="#Hello"]
+    else if (sep == "")
+    {
+      if (chr == '"' || chr == "'")
+        sep = chr;
+      else if (start == null)  // look for the start of an ID
+      {
+        if (chr == "#")
+          start = i;
+      }
+      else if (chr != "-" && chr != "_" &&
+               (chr < "0" ||
+                chr > "9" && chr < "A" ||
+                chr > "Z" && chr < "a" ||
+                chr > "z" && chr < "\x80")) // look for the end of the ID
+      {
+        positions.push({start: start, end: i});
+        start = null;
+      }
+    }
+  }
+  if (start != null)
+    positions.push({start: start, end: selector.length});
+
+  // Now replace them all with the [id="someID"] form
+  let newSelector = [];
+  let i = 0;
+  for (let pos of positions)
+  {
+    newSelector.push(selector.substring(i, pos.start));
+    newSelector.push('[id=' + selector.substring(pos.start + 1, pos.end) + ']');
+    i = pos.end;
+  }
+  newSelector.push(selector.substring(i));
+
+  return newSelector.join("");
+}
+
 function logRules()
 {
   let rules = [];
@@ -286,10 +337,16 @@ function logRules()
   {
     while (selectors.length)
     {
+      let selector = selectors.splice(0, selectorLimit).join(", ");
+
+      // As of Safari 9.0 element IDs are matched as lowercase. We work around
+      // this by converting to the attribute format [id="elementID"]
+      selector = convertIDSelectorsToAttributeSelectors(selector);
+
       addRule({
         trigger: {"url-filter": matchDomain},
         action: {type: "css-display-none",
-                 selector: selectors.splice(0, selectorLimit).join(", ")}
+                 selector: selector}
       });
     }
   });
