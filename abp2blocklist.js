@@ -27,7 +27,7 @@ var blockerList = new ContentBlockerList();
 rl.on("line", line =>
 {
   if (/^\s*[^\[\s]/.test(line))
-    blockerList.addFilter(Filter.fromText(line));
+    blockerList.addFilter(Filter.fromText(Filter.normalize(line)));
 });
 
 rl.on("close", () =>
