@@ -32,6 +32,5 @@ rl.on("line", line =>
 
 rl.on("close", () =>
 {
-  console.log(JSON.stringify(blockerList.generateRules(),
-                             null, "\t"));
+  console.log(JSON.stringify(blockerList.generateRules(), null, "\t"));
 });
