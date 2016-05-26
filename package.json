@@ -3,5 +3,11 @@
   "repository": { },
   "dependencies": {
     "tldjs": "*"
+  },
+  "devDependencies": {
+    "nodeunit": "0.9.1"
+  },
+  "scripts": {
+    "test": "node -e 'require(\".bin/nodeunit\");'"
   }
 }

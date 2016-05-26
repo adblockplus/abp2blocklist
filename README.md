@@ -37,3 +37,12 @@ generated file by hand.
 ```
 node abp2blocklist.js < easylist.txt > easylist.json
 ```
+
+## Tests
+
+Unit tests live in the `tests/` directory. To run the unit tests ensure you have
+already installed the required packages (see above) and then type this command:
+
+```
+npm test
+```
