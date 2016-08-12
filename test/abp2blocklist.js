@@ -73,7 +73,7 @@ exports.generateRules = {
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"]},
        action: {type: "block"}},
-      {trigger: {"url-filter": "^https?://test\\.com",
+      {trigger: {"url-filter": "^https?://([^/]+\\.)?test\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"]},
@@ -84,6 +84,16 @@ exports.generateRules = {
        action: {type: "block"}}
     ]);
 
+    testRules(test, ["||example.com"], [
+      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
+                 "url-filter-is-case-sensitive": true,
+                 "resource-type": ["image", "style-sheet", "script", "font",
+                                   "media", "raw", "document"]},
+
+       action: {type: "block"}}
+    ]);
+
+
     test.done();
   },
 
@@ -91,6 +101,14 @@ exports.generateRules = {
   {
     testRules(test, ["@@example.com"], [
       {trigger: {"url-filter": "^https?://.*example\\.com",
+                 "resource-type": ["image", "style-sheet", "script", "font",
+                                   "media", "raw", "document"]},
+       action: {type: "ignore-previous-rules"}}
+    ]);
+
+    testRules(test, ["@@||example.com"], [
+      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
+                 "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"]},
        action: {type: "ignore-previous-rules"}}
@@ -120,13 +138,13 @@ exports.generateRules = {
       {trigger: {"url-filter": ".*",
                  "if-domain": ["example.com", "www.example.com"]},
        action: {type: "ignore-previous-rules"}},
-      {trigger: {"url-filter": "^https?://example\\.com",
+      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image"]},
        action: {type: "ignore-previous-rules"}}
     ]);
     testRules(test, ["@@||example.com/path^$font,document"], [
-      {trigger: {"url-filter": "^https?://example\\.com/path",
+      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com/path",
                  "resource-type": ["font"]},
        action: {type: "ignore-previous-rules"}}
     ]);
