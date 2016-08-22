@@ -93,6 +93,8 @@ exports.generateRules = {
        action: {type: "block"}}
     ]);
 
+    // Rules which would match no resource-types shouldn't be generated.
+    testRules(test, ["foo$document", "||foo.com$document"], []);
 
     test.done();
   },
@@ -176,8 +178,8 @@ exports.generateRules = {
       test,
       ["1", "2$image", "3$stylesheet", "4$script", "5$font", "6$media",
        "7$popup", "8$object", "9$object_subrequest", "10$xmlhttprequest",
-       "11$ping", "12$subdocument", "13$other", "14$IMAGE", "15$document",
-       "16$script,PING,Popup", "17$~image"],
+       "11$ping", "12$subdocument", "13$other", "14$IMAGE",
+       "15$script,PING,Popup", "16$~image"],
       [["image", "style-sheet", "script", "font", "media", "raw", "document" ],
        ["image"],
        ["style-sheet"],
@@ -192,7 +194,6 @@ exports.generateRules = {
        ["document"],
        ["raw"],
        ["image"],
-       [],
        ["script", "popup", "raw" ],
        ["style-sheet", "script", "font", "media", "raw", "document"]],
       rules => rules.map(rule => rule.trigger["resource-type"])
