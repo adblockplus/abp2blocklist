@@ -2,8 +2,7 @@
   "license" : "GPL-3.0",
   "repository": { },
   "dependencies": {
-    "punycode": "*",
-    "tldjs": "*"
+    "punycode": "*"
   },
   "devDependencies": {
     "nodeunit": "0.9.1"

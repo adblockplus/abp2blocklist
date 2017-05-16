@@ -133,12 +133,12 @@ exports.generateRules = {
   {
     testRules(test, ["@@||example.com^$document"], [
       {trigger: {"url-filter": ".*",
-                 "if-domain": ["example.com", "www.example.com"]},
+                 "if-domain": ["*example.com"]},
        action: {type: "ignore-previous-rules"}}
     ]);
     testRules(test, ["@@||example.com^$document,image"], [
       {trigger: {"url-filter": ".*",
-                 "if-domain": ["example.com", "www.example.com"]},
+                 "if-domain": ["*example.com"]},
        action: {type: "ignore-previous-rules"}},
       {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
                  "url-filter-is-case-sensitive": true,
@@ -213,10 +213,10 @@ exports.generateRules = {
 
   testFilterOptions: function(test)
   {
-    testRules(test, ["1$domain=foo.com"], ["foo.com", "www.foo.com"],
+    testRules(test, ["1$domain=foo.com"], ["*foo.com"],
               rules => rules[0]["trigger"]["if-domain"]);
-    testRules(test, ["2$domain=third-party"], ["third-party"],
-              rules => rules[0]["trigger"]["if-domain"]);
+    testRules(test, ["2$third-party"], ["third-party"],
+              rules => rules[0]["trigger"]["load-type"]);
     testRules(test, ["foo$match_case"], true,
               rules => rules[0]["trigger"]["url-filter-is-case-sensitive"]);
 
@@ -225,7 +225,7 @@ exports.generateRules = {
 
   testUnicode: function(test)
   {
-    testRules(test, ["$domain=🐈.cat"], ["xn--zn8h.cat", "www.xn--zn8h.cat"],
+    testRules(test, ["$domain=🐈.cat"], ["*xn--zn8h.cat"],
               rules => rules[0]["trigger"]["if-domain"]);
     testRules(test, ["🐈$domain=🐈.cat"], []);
     testRules(test, ["###🐈"], []);
