@@ -170,6 +170,26 @@ exports.generateRules = {
     test.done();
   },
 
+  testGenericblockExceptions: function(test)
+  {
+    testRules(test, ["^ad.jpg|", "@@||example.com^$genericblock"],
+              [[undefined, ["*example.com"]]],
+              rules => rules.map(rule => [rule.trigger["if-domain"],
+                                          rule.trigger["unless-domain"]]));
+    testRules(test, ["^ad.jpg|$domain=test.com",
+                     "@@||example.com^$genericblock"],
+              [[["*test.com"], undefined]],
+              rules => rules.map(rule => [rule.trigger["if-domain"],
+                                          rule.trigger["unless-domain"]]));
+    testRules(test, ["^ad.jpg|$domain=~test.com",
+                     "@@||example.com^$genericblock"],
+              [[undefined, ["*test.com", "*example.com"]]],
+              rules => rules.map(rule => [rule.trigger["if-domain"],
+                                          rule.trigger["unless-domain"]]));
+
+    test.done();
+  },
+
   testRuleOrdering: function(test)
   {
     testRules(
@@ -221,7 +241,7 @@ exports.generateRules = {
   testUnsupportedfilters: function(test)
   {
     // These types of filters are currently completely unsupported.
-    testRules(test, ["foo$sitekey=bar", "@@foo$genericblock"], []);
+    testRules(test, ["foo$sitekey=bar"], []);
 
     test.done();
   },
