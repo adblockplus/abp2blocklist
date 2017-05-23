@@ -255,6 +255,14 @@ exports.generateRules = {
     testRules(test, ["foo$match_case"], true,
               rules => rules[0]["trigger"]["url-filter-is-case-sensitive"]);
 
+    // Test subdomain exceptions.
+    testRules(test, ["1$domain=foo.com|~bar.foo.com"],
+              ["foo.com", "www.foo.com"],
+              rules => rules[0]["trigger"]["if-domain"]);
+    testRules(test, ["1$domain=foo.com|~www.foo.com"],
+              ["foo.com"],
+              rules => rules[0]["trigger"]["if-domain"]);
+
     test.done();
   },
 
