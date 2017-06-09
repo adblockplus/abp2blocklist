@@ -87,16 +87,20 @@ exports.generateRules = {
     testRules(test, ["/foo", "||test.com", "http://example.com/foo"], [
       {trigger: {"url-filter": "^https?://.*/foo",
                  "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"]},
+                                   "media", "raw", "document"],
+                 "unless-top-url": ["^https?://.*/foo"]},
        action: {type: "block"}},
       {trigger: {"url-filter": "^https?://([^/]+\\.)?test\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"]},
+                                   "media", "raw", "document"],
+                 "unless-top-url": ["^https?://([^/]+\\.)?test\\.com"],
+                 "top-url-filter-is-case-sensitive": true},
        action: {type: "block"}},
       {trigger: {"url-filter": "http://example\\.com/foo",
                  "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"]},
+                                   "media", "raw", "document"],
+                 "unless-top-url": ["http://example\\.com/foo"]},
        action: {type: "block"}}
     ]);
 
@@ -104,7 +108,9 @@ exports.generateRules = {
       {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"]},
+                                   "media", "raw", "document"],
+                 "unless-top-url": ["^https?://([^/]+\\.)?example\\.com"],
+                 "top-url-filter-is-case-sensitive": true},
 
        action: {type: "block"}}
     ]);
