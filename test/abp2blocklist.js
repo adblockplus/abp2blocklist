@@ -276,8 +276,10 @@ exports.generateRules = {
   {
     testRules(test, ["$domain=🐈.cat"], ["*xn--zn8h.cat"],
               rules => rules[0]["trigger"]["if-domain"]);
-    testRules(test, ["🐈$domain=🐈.cat"], []);
-    testRules(test, ["###🐈"], []);
+    testRules(test, ["🐈$domain=🐈.cat"], "^https?://.*🐈",
+              rules => rules[0]["trigger"]["url-filter"]);
+    testRules(test, ["###🐈"], "[id=🐈]",
+              rules => rules[0]["action"]["selector"]);
 
     test.done();
   }
