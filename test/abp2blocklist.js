@@ -87,8 +87,7 @@ exports.generateRules = {
     testRules(test, ["/foo", "||test.com", "http://example.com/foo"], [
       {trigger: {"url-filter": "^https?://.*/foo",
                  "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"],
-                 "unless-top-url": ["^https?://.*/foo"]},
+                                   "media", "raw"]},
        action: {type: "block"}},
       {trigger: {"url-filter": "^https?://([^/]+\\.)?test\\.com",
                  "url-filter-is-case-sensitive": true,
@@ -222,7 +221,7 @@ exports.generateRules = {
        "7$popup", "8$object", "9$object_subrequest", "10$xmlhttprequest",
        "11$ping", "12$subdocument", "13$other", "14$IMAGE",
        "15$script,PING,Popup", "16$~image"],
-      [["image", "style-sheet", "script", "font", "media", "raw", "document" ],
+      [["image", "style-sheet", "script", "font", "media", "raw"],
        ["image"],
        ["style-sheet"],
        ["script"],
@@ -233,11 +232,10 @@ exports.generateRules = {
        ["raw"],
        ["raw"],
        ["raw"],
-       ["document"],
        ["raw"],
        ["image"],
        ["script", "popup", "raw" ],
-       ["style-sheet", "script", "font", "media", "raw", "document"]],
+       ["style-sheet", "script", "font", "media", "raw"]],
       rules => rules.map(rule => rule.trigger["resource-type"])
     );
 
