@@ -52,21 +52,18 @@ exports.generateRules = {
 
   testElementHidingExceptions: function(test)
   {
-    // Element hiding rules should be in the following order: (1) generic
-    // rules, (2) exceptions for generic rules, (3) domain-specific rules,
-    // (4) exceptions for all rules.
     testRules(test, [
       "##.whatever",
       "test.com###something",
       "@@||special.test.com^$elemhide",
-      "@@||test.com^$generichide"
+      "@@||test.com^$generichide",
+      "@@^something^$elemhide",
+      "@@^anything^$generichide"
     ], [
-      ["^https?://", "css-display-none"],
-      ["^https?://([^/]+\\.)?test\\.com", "ignore-previous-rules"],
-      ["^https?://([^/:]*\\.)?test\\.com[/:]", "css-display-none"],
-      ["^https?://([^/]+\\.)?special\\.test\\.com", "ignore-previous-rules"]
+      ["^https?://", ["*test.com", "*special.test.com"]],
+      ["^https?://([^/:]*\\.)?test\\.com[/:]", ["*special.test.com"]]
     ], rules => rules.map(rule => [rule.trigger["url-filter"],
-                                   rule.action.type]));
+                                   rule.trigger["unless-domain"]]));
 
     testRules(test, ["#@#whatever"], []);
     testRules(test, ["test.com#@#whatever"], []);

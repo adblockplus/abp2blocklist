@@ -32,5 +32,18 @@ rl.on("line", line =>
 
 rl.on("close", () =>
 {
-  console.log(JSON.stringify(blockerList.generateRules(), null, "\t"));
+  let rules = blockerList.generateRules();
+
+  // If the rule set is too huge, JSON.stringify throws
+  // "RangeError: Invalid string length" on Node.js. As a workaround, print
+  // each rule individually.
+  console.log("[");
+  if (rules.length > 0)
+  {
+    let stringifyRule = rule => JSON.stringify(rule, null, "\t");
+    for (let i = 0; i < rules.length - 1; i++)
+      console.log(stringifyRule(rules[i]) + ",");
+    console.log(stringifyRule(rules[rules.length - 1]));
+  }
+  console.log("]");
 });
