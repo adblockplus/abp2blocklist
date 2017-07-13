@@ -81,23 +81,48 @@ exports.generateRules = {
 
   testRequestFilters: function(test)
   {
-    testRules(test, ["/foo", "||test.com", "http://example.com/foo"], [
-      {trigger: {"url-filter": "^https?://.*/foo",
-                 "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw"]},
-       action: {type: "block"}},
-      {trigger: {"url-filter": "^https?://([^/]+\\.)?test\\.com",
-                 "url-filter-is-case-sensitive": true,
-                 "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"],
-                 "unless-top-url": ["^https?://([^/]+\\.)?test\\.com"],
-                 "top-url-filter-is-case-sensitive": true},
-       action: {type: "block"}},
-      {trigger: {"url-filter": "http://example\\.com/foo",
-                 "resource-type": ["image", "style-sheet", "script", "font",
-                                   "media", "raw", "document"],
-                 "unless-top-url": ["http://example\\.com/foo"]},
-       action: {type: "block"}}
+    testRules(test, [
+      "/foo", "||test.com^", "http://example.com/foo", "^foo^"
+    ], [
+      {
+        trigger: {
+          "url-filter": "^https?://.*/foo",
+          "resource-type": ["image", "style-sheet", "script", "font",
+                            "media", "raw"]
+        },
+        action: {type: "block"}
+      },
+      {
+        trigger: {
+          "url-filter": "^https?://([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$",
+          "url-filter-is-case-sensitive": true,
+          "resource-type": ["image", "style-sheet", "script", "font",
+                            "media", "raw", "document"],
+          "unless-top-url": [
+            "^https?://([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$"
+          ],
+          "top-url-filter-is-case-sensitive": true
+        },
+        action: {type: "block"}
+      },
+      {
+        trigger: {
+          "url-filter": "http://example\\.com/foo",
+          "resource-type": ["image", "style-sheet", "script", "font",
+                            "media", "raw", "document"],
+          "unless-top-url": ["http://example\\.com/foo"]
+        },
+        action: {type: "block"}
+      },
+      {
+        trigger: {
+          "url-filter":
+            "^https?://(.*[^-_.%A-Za-z0-9])?foo([^-_.%A-Za-z0-9].*)?$",
+          "resource-type": ["image", "style-sheet", "script", "font",
+                            "media", "raw"]
+        },
+        action: {type: "block"}
+      }
     ]);
 
     testRules(test, ["||example.com"], [
@@ -150,23 +175,40 @@ exports.generateRules = {
   testDomainWhitelisting: function(test)
   {
     testRules(test, ["@@||example.com^$document"], [
-      {trigger: {"url-filter": ".*",
-                 "if-domain": ["*example.com"]},
-       action: {type: "ignore-previous-rules"}}
+      {
+        trigger: {
+          "url-filter": ".*",
+          "if-domain": ["*example.com"]
+        },
+        action: {type: "ignore-previous-rules"}
+      }
     ]);
     testRules(test, ["@@||example.com^$document,image"], [
-      {trigger: {"url-filter": ".*",
-                 "if-domain": ["*example.com"]},
-       action: {type: "ignore-previous-rules"}},
-      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
-                 "url-filter-is-case-sensitive": true,
-                 "resource-type": ["image"]},
-       action: {type: "ignore-previous-rules"}}
+      {
+        trigger: {
+          "url-filter": ".*",
+          "if-domain": ["*example.com"]
+        },
+        action: {type: "ignore-previous-rules"}
+      },
+      {
+        trigger: {
+          "url-filter": "^https?://([^/]+\\.)?example\\.com([^-_.%a-z0-9].*)?$",
+          "url-filter-is-case-sensitive": true,
+          "resource-type": ["image"]
+        },
+        action: {type: "ignore-previous-rules"}
+      }
     ]);
     testRules(test, ["@@||example.com/path^$font,document"], [
-      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com/path",
-                 "resource-type": ["font"]},
-       action: {type: "ignore-previous-rules"}}
+      {
+        trigger: {
+          "url-filter":
+            "^https?://([^/]+\\.)?example\\.com/path([^-_.%A-Za-z0-9].*)?$",
+          "resource-type": ["font"]
+        },
+        action: {type: "ignore-previous-rules"}
+      }
     ]);
 
     test.done();
