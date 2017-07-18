@@ -86,7 +86,7 @@ exports.generateRules = {
     ], [
       {
         trigger: {
-          "url-filter": "^https?://.*/foo",
+          "url-filter": "^[^:]+:(//)?.*/foo",
           "resource-type": ["image", "style-sheet", "script", "font",
                             "media", "raw"]
         },
@@ -94,12 +94,12 @@ exports.generateRules = {
       },
       {
         trigger: {
-          "url-filter": "^https?://([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$",
+          "url-filter": "^[^:]+:(//)?([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$",
           "url-filter-is-case-sensitive": true,
           "resource-type": ["image", "style-sheet", "script", "font",
                             "media", "raw", "document"],
           "unless-top-url": [
-            "^https?://([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$"
+            "^[^:]+:(//)?([^/]+\\.)?test\\.com([^-_.%a-z0-9].*)?$"
           ],
           "top-url-filter-is-case-sensitive": true
         },
@@ -107,17 +107,26 @@ exports.generateRules = {
       },
       {
         trigger: {
-          "url-filter": "http://example\\.com/foo",
+          "url-filter": "^http://example\\.com/foo",
           "resource-type": ["image", "style-sheet", "script", "font",
                             "media", "raw", "document"],
-          "unless-top-url": ["http://example\\.com/foo"]
+          "unless-top-url": ["^http://example\\.com/foo"]
+        },
+        action: {type: "block"}
+      },
+      {
+        trigger: {
+          "url-filter": "^[^:]+:(//)?.*http://example\\.com/foo",
+          "resource-type": ["image", "style-sheet", "script", "font",
+                            "media", "raw", "document"],
+          "unless-top-url": ["^[^:]+:(//)?.*http://example\\.com/foo"]
         },
         action: {type: "block"}
       },
       {
         trigger: {
           "url-filter":
-            "^https?://(.*[^-_.%A-Za-z0-9])?foo([^-_.%A-Za-z0-9].*)?$",
+            "^[^:]+:(//)?(.*[^-_.%A-Za-z0-9])?foo([^-_.%A-Za-z0-9].*)?$",
           "resource-type": ["image", "style-sheet", "script", "font",
                             "media", "raw"]
         },
@@ -126,11 +135,11 @@ exports.generateRules = {
     ]);
 
     testRules(test, ["||example.com"], [
-      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
+      {trigger: {"url-filter": "^[^:]+:(//)?([^/]+\\.)?example\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"],
-                 "unless-top-url": ["^https?://([^/]+\\.)?example\\.com"],
+                 "unless-top-url": ["^[^:]+:(//)?([^/]+\\.)?example\\.com"],
                  "top-url-filter-is-case-sensitive": true},
 
        action: {type: "block"}}
@@ -145,14 +154,14 @@ exports.generateRules = {
   testRequestFilterExceptions: function(test)
   {
     testRules(test, ["@@example.com"], [
-      {trigger: {"url-filter": "^https?://.*example\\.com",
+      {trigger: {"url-filter": "^[^:]+:(//)?.*example\\.com",
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"]},
        action: {type: "ignore-previous-rules"}}
     ]);
 
     testRules(test, ["@@||example.com"], [
-      {trigger: {"url-filter": "^https?://([^/]+\\.)?example\\.com",
+      {trigger: {"url-filter": "^[^:]+:(//)?([^/]+\\.)?example\\.com",
                  "url-filter-is-case-sensitive": true,
                  "resource-type": ["image", "style-sheet", "script", "font",
                                    "media", "raw", "document"]},
@@ -258,8 +267,9 @@ exports.generateRules = {
       test,
       ["1", "2$image", "3$stylesheet", "4$script", "5$font", "6$media",
        "7$popup", "8$object", "9$object_subrequest", "10$xmlhttprequest",
-       "11$ping", "12$subdocument", "13$other", "14$IMAGE",
-       "15$script,PING,Popup", "16$~image"],
+       "11$websocket", "12$webrtc",
+       "13$ping", "14$subdocument", "15$other", "16$IMAGE",
+       "17$script,PING,Popup", "18$~image"],
       [["image", "style-sheet", "script", "font", "media", "raw"],
        ["image"],
        ["style-sheet"],
@@ -270,6 +280,9 @@ exports.generateRules = {
        ["media"],
        ["raw"],
        ["raw"],
+       ["raw"], // WebSocket
+       ["raw"], // WebRTC: STUN
+       ["raw"], // WebRTC: TURN
        ["raw"],
        ["raw"],
        ["image"],
@@ -313,15 +326,37 @@ exports.generateRules = {
   {
     testRules(test, ["$domain=🐈.cat"], ["*xn--zn8h.cat"],
               rules => rules[0]["trigger"]["if-domain"]);
-    testRules(test, ["||🐈"], "^https?://([^/]+\\.)?xn--zn8h",
+    testRules(test, ["||🐈"], "^[^:]+:(//)?([^/]+\\.)?xn--zn8h",
               rules => rules[0]["trigger"]["url-filter"]);
-    testRules(test, ["🐈$domain=🐈.cat"], "^https?://.*%F0%9F%90%88",
+    testRules(test, ["🐈$domain=🐈.cat"], "^[^:]+:(//)?.*%F0%9F%90%88",
               rules => rules[0]["trigger"]["url-filter"]);
     testRules(test, ["🐈%F0%9F%90%88$domain=🐈.cat"],
-              "^https?://.*%F0%9F%90%88%F0%9F%90%88",
+              "^[^:]+:(//)?.*%F0%9F%90%88%F0%9F%90%88",
               rules => rules[0]["trigger"]["url-filter"]);
     testRules(test, ["###🐈"], "[id=🐈]",
               rules => rules[0]["action"]["selector"]);
+
+    test.done();
+  },
+
+  testWebSocket: function(test)
+  {
+    testRules(test, ["foo$websocket"], [
+      {trigger: {"url-filter": "^wss?://.*foo", "resource-type": ["raw"]},
+       action: {type: "block"}}
+    ]);
+
+    test.done();
+  },
+
+  testWebRTC: function(test)
+  {
+    testRules(test, ["foo$webrtc"], [
+      {trigger: {"url-filter": "^stuns?:.*foo", "resource-type": ["raw"]},
+       action: {type: "block"}},
+      {trigger: {"url-filter": "^turns?:.*foo", "resource-type": ["raw"]},
+       action: {type: "block"}}
+    ]);
 
     test.done();
   }
