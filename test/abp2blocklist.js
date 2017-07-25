@@ -54,13 +54,14 @@ exports.generateRules = {
   {
     testRules(test, [
       "##.whatever",
-      "test.com###something",
+      "test.com,anothertest.com###something",
       "@@||special.test.com^$elemhide",
       "@@||test.com^$generichide",
+      "@@||anothertest.com^$elemhide",
       "@@^something^$elemhide",
       "@@^anything^$generichide"
     ], [
-      ["^https?://", ["*test.com", "*special.test.com"]],
+      ["^https?://", ["*test.com", "*special.test.com", "*anothertest.com"]],
       ["^https?://([^/:]*\\.)?test\\.com[/:]", ["*special.test.com"]]
     ], rules => rules.map(rule => [rule.trigger["url-filter"],
                                    rule.trigger["unless-domain"]]));
