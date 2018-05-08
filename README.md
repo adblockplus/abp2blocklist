@@ -34,8 +34,9 @@ generated file by hand.
 
 ## Usage
 
+Create a WebKit block list `output.json` from the Adblock Plus filter list `input.txt`:
 ```
-node abp2blocklist.js < easylist.txt > easylist.json
+node abp2blocklist.js < input.txt > output.json
 ```
 
 ## Tests
