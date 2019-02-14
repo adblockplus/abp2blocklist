@@ -18,20 +18,6 @@ The required packages can be installed via [NPM](https://npmjs.org):
 npm install
 ```
 
-### filterClasses.js
-
-The filterClasses module in `node_modules/filterClasses.js` is generated from
-the module in the `adblockpluscore` repository. It has been generated using
-JS Hydra, and small modifications made. If you need to re-generate the file run
-this command (adjusting the paths as appropriate):
-
-```
-python buildtools/jshydra/abp_rewrite.py adblockpluscore/lib/filterClasses.js | grep -vi filterNotifier > ../abp2blocklist/node_modules/filterClasses.js
-```
-You will then need to remove any references to the `utils` module from the
-generated file by hand.
-
-
 ## Usage
 
 Create a WebKit block list `output.json` from the Adblock Plus filter list `input.txt`:
@@ -47,3 +33,17 @@ already installed the required packages (see above) and then type this command:
 ```
 npm test
 ```
+
+## Adblock Plus core code
+
+To parse the Adblock Plus filters, we reuse parts of the core Adblock Plus code,
+those files are inside the adblockpluscore directory.
+
+If you need to refresh those files, run these commands (adjusting the paths as appropriate):
+
+    cp adblockpluscore/lib/common.js abp2blocklist/adblockpluscore/lib/
+    cp adblockpluscore/lib/coreUtils.js abp2blocklist/adblockpluscore/lib/
+    cp adblockpluscore/lib/domain.js abp2blocklist/adblockpluscore/lib/
+    cp adblockpluscore/data/resources.json abp2blocklist/adblockpluscore/data/
+    cp adblockpluscore/data/publicSuffixList.json abp2blocklist/adblockpluscore/data/
+    grep -vi filterNotifier adblockpluscore/lib/filterClasses.js > abp2blocklist/adblockpluscore/lib/filterClasses.js

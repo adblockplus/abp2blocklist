@@ -18,8 +18,8 @@
 "use strict";
 
 let readline = require("readline");
-let Filter = require("filterClasses").Filter;
-let ContentBlockerList = require("./lib/abp2blocklist.js").ContentBlockerList;
+let {Filter} = require("./adblockpluscore/lib/filterClasses");
+let {ContentBlockerList} = require("./lib/abp2blocklist.js");
 
 var rl = readline.createInterface({input: process.stdin, terminal: false});
 var blockerList = new ContentBlockerList({merge: "all"});

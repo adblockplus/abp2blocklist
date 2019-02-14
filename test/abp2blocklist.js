@@ -17,8 +17,8 @@
 
 "use strict";
 
-let Filter = require("filterClasses").Filter;
-let ContentBlockerList = require("../lib/abp2blocklist.js").ContentBlockerList;
+let {Filter} = require("../adblockpluscore/lib/filterClasses");
+let {ContentBlockerList} = require("../lib/abp2blocklist.js");
 
 function runTest(test, assertions)
 {
@@ -311,7 +311,10 @@ exports.generateRules = {
   {
     runTest(test, [
       // These types of filters are currently completely unsupported.
-      testRules(test, ["foo$sitekey=bar"], [])
+      testRules(test, ["foo$sitekey=bar"], []),
+      // We skip filters which contain Unicode characters these days.
+      testRules(test, ["$domain=🐈.cat", "||🐈", "🐈$domain=🐈.cat",
+                       "🐈%F0%9F%90%88$domain=🐈.cat", "###🐈"], [])
     ]);
   },
 
@@ -322,7 +325,7 @@ exports.generateRules = {
                 rules => rules[0]["trigger"]["if-domain"]),
       testRules(test, ["2$third-party"], ["third-party"],
                 rules => rules[0]["trigger"]["load-type"]),
-      testRules(test, ["foo$match_case"], true,
+      testRules(test, ["foo$match-case"], true,
                 rules => rules[0]["trigger"]["url-filter-is-case-sensitive"]),
 
       // Test subdomain exceptions.
@@ -332,23 +335,6 @@ exports.generateRules = {
       testRules(test, ["1$domain=foo.com|~www.foo.com"],
                 ["foo.com"],
                 rules => rules[0]["trigger"]["if-domain"])
-    ]);
-  },
-
-  testUnicode: function(test)
-  {
-    runTest(test, [
-      testRules(test, ["$domain=🐈.cat"], ["*xn--zn8h.cat"],
-                rules => rules[0]["trigger"]["if-domain"]),
-      testRules(test, ["||🐈"], "^[^:]+:(//)?([^/]+\\.)?xn--zn8h",
-                rules => rules[0]["trigger"]["url-filter"]),
-      testRules(test, ["🐈$domain=🐈.cat"], "^[^:]+:(//)?.*%F0%9F%90%88",
-                rules => rules[0]["trigger"]["url-filter"]),
-      testRules(test, ["🐈%F0%9F%90%88$domain=🐈.cat"],
-                "^[^:]+:(//)?.*%F0%9F%90%88%F0%9F%90%88",
-                rules => rules[0]["trigger"]["url-filter"]),
-      testRules(test, ["###🐈"], "[id=🐈]",
-                rules => rules[0]["action"]["selector"])
     ]);
   },
 

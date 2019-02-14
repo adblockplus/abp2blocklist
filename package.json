@@ -1,9 +1,6 @@
 {
-  "license" : "GPL-3.0",
-  "repository": { },
-  "dependencies": {
-    "punycode": "*"
-  },
+  "license": "GPL-3.0",
+  "repository": {},
   "devDependencies": {
     "nodeunit": "0.9.1"
   },
